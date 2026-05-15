@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meeting Queue</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="join-card" class="login-panel brutal-card">
+        <p class="kicker">Meeturn</p>
+        <h1>Keep speaking turns structured without killing the flow.</h1>
+        <p class="lede">
+          Join a room, queue the next speaker, and let responses branch off the
+          current turn without losing track of the room.
+        </p>
+        <form id="join-form" class="login-form">
+          <div id="mode-toggle" class="mode-toggle" role="tablist" aria-label="Room mode">
+            <button type="button" id="join-mode-btn" class="mode-option active" aria-pressed="true">
+              Join room
+            </button>
+            <button type="button" id="create-mode-btn" class="mode-option" aria-pressed="false">
+              Create room
+            </button>
+          </div>
+          <label id="room-field">
+            Room ID
+            <input id="room-input" required maxlength="40" />
+          </label>
+          <label>
+            Your name
+            <input id="name-input" required maxlength="40" />
+          </label>
+          <button type="submit" id="join-submit-btn">Join Room</button>
+        </form>
+        <p id="join-error" class="feedback error"></p>
+      </section>
+
+      <section id="room-card" class="hidden room-shell">
+        <header class="hero brutal-card section-card">
+          <div class="hero-copy">
+            <p class="kicker">Live Facilitation</p>
+            <h2 id="room-title"></h2>
+          </div>
+          <div class="share-panel">
+            <p id="room-link" class="page-note"></p>
+            <img
+              id="room-qr"
+              class="room-qr hidden"
+              alt="QR code for joining this room"
+              width="120"
+              height="120"
+            />
+          </div>
+        </header>
+
+        <div class="status-grid">
+          <section class="brutal-card section-card spotlight-card">
+            <div class="section-heading">
+              <div>
+                <p class="badge">Now Speaking</p>
+                <h3>Current Speaker</h3>
+              </div>
+            </div>
+            <p id="current-speaker">Nobody speaking yet.</p>
+          </section>
+
+          <section class="brutal-card section-card controls-panel">
+            <div class="section-heading">
+              <div>
+                <p class="badge">Actions</p>
+                <h3>Control The Queue</h3>
+              </div>
+            </div>
+            <div class="controls">
+              <button id="join-queue-btn">Join Talking Queue</button>
+              <button id="respond-btn">Respond to Current Speaker</button>
+              <button id="yield-btn">Yield Turn</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="board-grid">
+          <section class="brutal-card section-card board-card queue-card">
+            <div class="section-heading">
+              <div>
+                <p class="badge">Order</p>
+                <h3>Talking Queue</h3>
+              </div>
+            </div>
+            <ol id="main-queue" class="stack-list"></ol>
+          </section>
+
+          <section class="brutal-card section-card board-card participants-card">
+            <div class="section-heading">
+              <div>
+                <p class="badge">Presence</p>
+                <h3>In Room</h3>
+              </div>
+            </div>
+            <ul id="participants" class="stack-list"></ul>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
