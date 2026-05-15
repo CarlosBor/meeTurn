@@ -21,6 +21,7 @@ function createRoomState() {
     responseQueues: new Map(),
     currentTurn: null,
     turnSeq: 0,
+    ownerId: null,
   };
 }
 
@@ -153,6 +154,7 @@ function serializeRoom(room) {
   }
 
   return {
+    ownerId: room.ownerId,
     participants,
     currentSpeaker,
     mainQueue,
@@ -187,6 +189,10 @@ io.on('connection', (socket) => {
 
     const room = ensureRoom(safeRoomId);
     socket.join(safeRoomId);
+
+    if (!room.ownerId) {
+      room.ownerId = socket.id;
+    }
 
     room.participants.set(socket.id, { name: safeName });
     socketMeta.set(socket.id, { roomId: safeRoomId });
@@ -255,6 +261,10 @@ io.on('connection', (socket) => {
 
     room.participants.delete(socket.id);
     removeFromQueues(room, socket.id);
+
+    if (room.ownerId === socket.id) {
+      room.ownerId = room.participants.keys().next().value || null;
+    }
 
     if (room.currentTurn?.userId === socket.id) {
       applyYield(room);

@@ -15,9 +15,9 @@
   <body>
     <main class="app-shell">
       <section id="join-card" class="login-panel brutal-card">
-        <p class="kicker">Meeturn</p>
-        <h1>Keep speaking turns structured without killing the flow.</h1>
-        <p class="lede">
+        <p id="join-kicker" class="kicker">Meeturn</p>
+        <h1 id="join-title">Keep speaking turns structured without killing the flow.</h1>
+        <p id="join-lede" class="lede">
           Join a room, queue the next speaker, and let responses branch off the
           current turn without losing track of the room.
         </p>
@@ -44,7 +44,7 @@
       </section>
 
       <section id="room-card" class="hidden room-shell">
-        <header class="hero brutal-card section-card">
+        <header id="owner-share-card" class="hero brutal-card section-card">
           <div class="hero-copy">
             <p class="kicker">Live Facilitation</p>
             <h2 id="room-title"></h2>
@@ -62,7 +62,7 @@
         </header>
 
         <div class="status-grid">
-          <section class="brutal-card section-card spotlight-card">
+          <section id="owner-speaker-card" class="brutal-card section-card spotlight-card">
             <div class="section-heading">
               <div>
                 <p class="badge">Now Speaking</p>
@@ -91,21 +91,11 @@
           <section class="brutal-card section-card board-card queue-card">
             <div class="section-heading">
               <div>
-                <p class="badge">Order</p>
-                <h3>Talking Queue</h3>
+                <p id="queue-badge" class="badge">Order</p>
+                <h3 id="queue-title">Talking Queue</h3>
               </div>
             </div>
             <ol id="main-queue" class="stack-list"></ol>
-          </section>
-
-          <section class="brutal-card section-card board-card participants-card">
-            <div class="section-heading">
-              <div>
-                <p class="badge">Presence</p>
-                <h3>In Room</h3>
-              </div>
-            </div>
-            <ul id="participants" class="stack-list"></ul>
           </section>
         </div>
       </section>

@@ -1,6 +1,9 @@
 const socket = io();
 
 const joinCard = document.getElementById('join-card');
+const joinKicker = document.getElementById('join-kicker');
+const joinTitle = document.getElementById('join-title');
+const joinLede = document.getElementById('join-lede');
 const roomCard = document.getElementById('room-card');
 const joinForm = document.getElementById('join-form');
 const modeToggle = document.getElementById('mode-toggle');
@@ -12,21 +15,28 @@ const createModeBtn = document.getElementById('create-mode-btn');
 const joinSubmitBtn = document.getElementById('join-submit-btn');
 const joinError = document.getElementById('join-error');
 
+const ownerShareCard = document.getElementById('owner-share-card');
+const ownerSpeakerCard = document.getElementById('owner-speaker-card');
 const roomTitle = document.getElementById('room-title');
 const roomLink = document.getElementById('room-link');
 const roomQr = document.getElementById('room-qr');
+const queueBadge = document.getElementById('queue-badge');
+const queueTitle = document.getElementById('queue-title');
 const currentSpeakerEl = document.getElementById('current-speaker');
 const joinQueueBtn = document.getElementById('join-queue-btn');
 const respondBtn = document.getElementById('respond-btn');
 const yieldBtn = document.getElementById('yield-btn');
 const mainQueueEl = document.getElementById('main-queue');
-const participantsEl = document.getElementById('participants');
 
 let me = null;
 let roomId = '';
 let roomState = null;
 let isCreateMode = false;
 let forcedRoomId = '';
+
+function iAmOwner() {
+  return Boolean(me && roomState && roomState.ownerId === me.id);
+}
 
 function makeRoomId() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -51,6 +61,10 @@ function renderList(container, items) {
 function syncJoinMode() {
   const hasForcedRoom = Boolean(forcedRoomId);
 
+  joinCard.classList.toggle('compact-join-card', hasForcedRoom);
+  joinKicker.classList.toggle('hidden', hasForcedRoom);
+  joinTitle.classList.toggle('hidden', hasForcedRoom);
+  joinLede.classList.toggle('hidden', hasForcedRoom);
   modeToggle.classList.toggle('hidden', hasForcedRoom);
   roomField.classList.toggle('hidden', isCreateMode || hasForcedRoom);
   roomInput.required = !isCreateMode && !hasForcedRoom;
@@ -123,6 +137,7 @@ function updateButtons() {
 
 function renderState() {
   if (!roomState || !me) return;
+  const ownerView = iAmOwner();
 
   if (!roomState.currentSpeaker) {
     currentSpeakerEl.textContent = 'Nobody speaking yet.';
@@ -135,11 +150,11 @@ function renderState() {
     }
   }
 
-  const participantLabels = roomState.participants.map((p) => p.id === me.id ? `${p.name} (you)` : p.name);
-
+  ownerShareCard.classList.toggle('hidden', !ownerView);
+  ownerSpeakerCard.classList.toggle('hidden', !ownerView);
+  queueBadge.textContent = ownerView ? 'Order' : 'Live';
+  queueTitle.textContent = ownerView ? 'Talking Queue' : 'Current Speaker And Queue';
   renderTalkingQueue();
-  renderList(participantsEl, participantLabels);
-
   updateButtons();
 }
 
