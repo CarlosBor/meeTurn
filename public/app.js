@@ -13,6 +13,7 @@ const nameInput = document.getElementById('name-input');
 const joinModeBtn = document.getElementById('join-mode-btn');
 const createModeBtn = document.getElementById('create-mode-btn');
 const joinSubmitBtn = document.getElementById('join-submit-btn');
+const otherRoomLink = document.getElementById('other-room-link');
 const joinError = document.getElementById('join-error');
 
 const ownerShareCard = document.getElementById('owner-share-card');
@@ -63,8 +64,12 @@ function syncJoinMode() {
 
   joinCard.classList.toggle('compact-join-card', hasForcedRoom);
   joinKicker.classList.toggle('hidden', hasForcedRoom);
-  joinTitle.classList.toggle('hidden', hasForcedRoom);
+  joinTitle.textContent = hasForcedRoom
+    ? 'You are now joining a room.'
+    : 'Keep speaking turns structured without killing the flow.';
+  joinTitle.classList.remove('hidden');
   joinLede.classList.toggle('hidden', hasForcedRoom);
+  otherRoomLink.classList.toggle('hidden', !hasForcedRoom);
   modeToggle.classList.toggle('hidden', hasForcedRoom);
   roomField.classList.toggle('hidden', isCreateMode || hasForcedRoom);
   roomInput.required = !isCreateMode && !hasForcedRoom;
@@ -159,8 +164,10 @@ function renderState() {
 }
 
 function enterRoomUI() {
+  document.body.classList.add('room-active');
   joinCard.classList.add('hidden');
   roomCard.classList.remove('hidden');
+  ownerShareCard.classList.add('hidden');
   roomTitle.textContent = `Room ${roomId}`;
   const url = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}`;
   roomLink.innerHTML = `Share link: <a href="${url}">${url}</a>`;
@@ -241,6 +248,7 @@ socket.on('room:state', (state) => {
 (function init() {
   const url = new URL(window.location.href);
   const rid = url.searchParams.get('room');
+  otherRoomLink.querySelector('a').href = `${window.location.origin}${window.location.pathname}`;
   if (rid) {
     forcedRoomId = rid.toUpperCase();
     roomInput.value = forcedRoomId;

@@ -31,6 +31,10 @@ body {
     var(--bg);
 }
 
+body.room-active #join-card {
+  display: none !important;
+}
+
 button,
 input,
 a {
@@ -279,6 +283,10 @@ button:disabled {
 
 .feedback {
   min-height: 1.3rem;
+}
+
+.join-alt {
+  font-weight: 700;
 }
 
 .error {

@@ -18,8 +18,7 @@ function createRoomState() {
   return {
     participants: new Map(),
     mainQueue: [],
-    responseQueues: new Map(),
-    currentTurn: null,
+    currentBlock: null,
     turnSeq: 0,
     ownerId: null,
   };
@@ -32,97 +31,95 @@ function ensureRoom(roomId) {
   return rooms.get(roomId);
 }
 
-function makeMainTurn(room, userId) {
+function makeBlockId(room) {
   room.turnSeq += 1;
-  return {
-    turnId: `${room.turnSeq}`,
-    type: 'main',
-    userId,
-    parentTurnId: null,
-  };
+  return `${room.turnSeq}`;
 }
 
-function makeResponseTurn(room, userId, parentTurnId) {
-  room.turnSeq += 1;
+function makeSpeakerEntry(id, name, role, status) {
   return {
-    turnId: `${room.turnSeq}`,
-    type: 'response',
-    userId,
-    parentTurnId,
+    id,
+    name,
+    role,
+    status,
   };
 }
 
 function isQueued(room, userId) {
-  if (room.mainQueue.includes(userId)) return true;
-  for (const queue of room.responseQueues.values()) {
-    if (queue.includes(userId)) return true;
+  if (room.mainQueue.some((entry) => entry.id === userId)) return true;
+  if (!room.currentBlock) return false;
+  if (room.currentBlock.mainSpeaker.id === userId) return true;
+  for (const reply of room.currentBlock.replies) {
+    if (reply.id === userId) {
+      return true;
+    }
   }
   return false;
 }
 
 function removeFromQueues(room, userId) {
-  room.mainQueue = room.mainQueue.filter((id) => id !== userId);
-  for (const [turnId, queue] of room.responseQueues.entries()) {
-    const filtered = queue.filter((id) => id !== userId);
-    if (filtered.length === 0) {
-      room.responseQueues.delete(turnId);
-    } else {
-      room.responseQueues.set(turnId, filtered);
-    }
+  room.mainQueue = room.mainQueue.filter((entry) => entry.id !== userId);
+  if (!room.currentBlock) {
+    return;
   }
+
+  if (room.currentBlock.mainSpeaker.id === userId) {
+    room.currentBlock.mainSpeaker.status = 'completed';
+  }
+
+  room.currentBlock.replies = room.currentBlock.replies.filter((reply) => {
+    if (reply.id !== userId) return true;
+    return reply.status === 'completed';
+  });
 }
 
-function advanceToNextMain(room) {
+function findCurrentEntry(room) {
+  if (!room.currentBlock) return null;
+  if (room.currentBlock.mainSpeaker.status === 'current') {
+    return room.currentBlock.mainSpeaker;
+  }
+  return room.currentBlock.replies.find((reply) => reply.status === 'current') || null;
+}
+
+function startNextMainBlock(room) {
   while (room.mainQueue.length > 0) {
-    const nextUser = room.mainQueue.shift();
-    if (room.participants.has(nextUser)) {
-      room.currentTurn = makeMainTurn(room, nextUser);
+    const nextSpeaker = room.mainQueue.shift();
+    if (room.participants.has(nextSpeaker.id)) {
+      room.currentBlock = {
+        blockId: makeBlockId(room),
+        mainSpeaker: makeSpeakerEntry(nextSpeaker.id, nextSpeaker.name, 'main', 'current'),
+        replies: [],
+      };
       return;
     }
   }
-  room.currentTurn = null;
+  room.currentBlock = null;
+}
+
+function advanceCurrentBlock(room) {
+  if (!room.currentBlock) {
+    return;
+  }
+
+  for (const reply of room.currentBlock.replies) {
+    if (reply.status === 'queued' && room.participants.has(reply.id)) {
+      reply.status = 'current';
+      return;
+    }
+  }
+
+  room.currentBlock = null;
+  startNextMainBlock(room);
 }
 
 function applyYield(room) {
-  if (!room.currentTurn) {
+  const currentEntry = findCurrentEntry(room);
+  if (!currentEntry) {
     return;
   }
 
-  if (room.currentTurn.type === 'main') {
-    const responseQueue = room.responseQueues.get(room.currentTurn.turnId) || [];
-    while (responseQueue.length > 0) {
-      const nextResponder = responseQueue.shift();
-      if (room.participants.has(nextResponder)) {
-        room.currentTurn = makeResponseTurn(room, nextResponder, room.currentTurn.turnId);
-        if (responseQueue.length === 0) {
-          room.responseQueues.delete(room.currentTurn.parentTurnId);
-        } else {
-          room.responseQueues.set(room.currentTurn.parentTurnId, responseQueue);
-        }
-        return;
-      }
-    }
-    room.responseQueues.delete(room.currentTurn.turnId);
-    advanceToNextMain(room);
-    return;
-  }
-
-  const parentTurnId = room.currentTurn.parentTurnId;
-  const responseQueue = room.responseQueues.get(parentTurnId) || [];
-  while (responseQueue.length > 0) {
-    const nextResponder = responseQueue.shift();
-    if (room.participants.has(nextResponder)) {
-      room.currentTurn = makeResponseTurn(room, nextResponder, parentTurnId);
-      if (responseQueue.length === 0) {
-        room.responseQueues.delete(parentTurnId);
-      } else {
-        room.responseQueues.set(parentTurnId, responseQueue);
-      }
-      return;
-    }
-  }
-  room.responseQueues.delete(parentTurnId);
-  advanceToNextMain(room);
+  currentEntry.status = 'completed';
+  advanceCurrentBlock(room);
 }
 
 function serializeRoom(room) {
@@ -131,35 +128,32 @@ function serializeRoom(room) {
     participants.push({ id, name: data.name });
   }
 
-  const currentSpeaker = room.currentTurn
+  const currentEntry = findCurrentEntry(room);
+  const currentSpeaker = currentEntry
     ? {
-        ...room.currentTurn,
-        name: room.participants.get(room.currentTurn.userId)?.name || 'Unknown',
+        id: currentEntry.id,
+        name: currentEntry.name,
+        role: currentEntry.role,
+        status: currentEntry.status,
       }
     : null;
 
   const mainQueue = room.mainQueue
-    .filter((id) => room.participants.has(id))
-    .map((id) => ({ id, name: room.participants.get(id).name }));
-
-  let responseAnchor = null;
-  let responseQueue = [];
-
-  if (room.currentTurn) {
-    const anchorTurnId = room.currentTurn.type === 'main' ? room.currentTurn.turnId : room.currentTurn.parentTurnId;
-    responseAnchor = anchorTurnId;
-    responseQueue = (room.responseQueues.get(anchorTurnId) || [])
-      .filter((id) => room.participants.has(id))
-      .map((id) => ({ id, name: room.participants.get(id).name }));
-  }
+    .filter((entry) => room.participants.has(entry.id))
+    .map((entry) => ({ id: entry.id, name: entry.name }));
 
   return {
     ownerId: room.ownerId,
     participants,
     currentSpeaker,
     mainQueue,
-    responseQueue,
-    responseAnchor,
+    activeBlock: room.currentBlock
+      ? {
+          blockId: room.currentBlock.blockId,
+          mainSpeaker: { ...room.currentBlock.mainSpeaker },
+          replies: room.currentBlock.replies.map((reply) => ({ ...reply })),
+        }
+      : null,
   };
 }
 
@@ -208,13 +202,20 @@ io.on('connection', (socket) => {
     const room = rooms.get(meta.roomId);
     if (!room || !room.participants.has(socket.id)) return;
 
-    const isCurrent = room.currentTurn?.userId === socket.id;
+    const isCurrent = findCurrentEntry(room)?.id === socket.id;
     if (isCurrent || isQueued(room, socket.id)) return;
 
-    if (!room.currentTurn) {
-      room.currentTurn = makeMainTurn(room, socket.id);
+    if (!room.currentBlock) {
+      room.currentBlock = {
+        blockId: makeBlockId(room),
+        mainSpeaker: makeSpeakerEntry(socket.id, room.participants.get(socket.id).name, 'main', 'current'),
+        replies: [],
+      };
     } else {
-      room.mainQueue.push(socket.id);
+      room.mainQueue.push({
+        id: socket.id,
+        name: room.participants.get(socket.id).name,
+      });
     }
 
     emitRoomState(meta.roomId);
@@ -225,15 +226,15 @@ io.on('connection', (socket) => {
     if (!meta) return;
 
     const room = rooms.get(meta.roomId);
-    if (!room || !room.currentTurn || !room.participants.has(socket.id)) return;
+    const currentEntry = findCurrentEntry(room);
+    if (!room || !room.currentBlock || !currentEntry || !room.participants.has(socket.id)) return;
 
-    if (room.currentTurn.userId === socket.id) return;
+    if (currentEntry.id === socket.id) return;
     if (isQueued(room, socket.id)) return;
 
-    const anchorTurnId = room.currentTurn.type === 'main' ? room.currentTurn.turnId : room.currentTurn.parentTurnId;
-    const existing = room.responseQueues.get(anchorTurnId) || [];
-    existing.push(socket.id);
-    room.responseQueues.set(anchorTurnId, existing);
+    room.currentBlock.replies.push(
+      makeSpeakerEntry(socket.id, room.participants.get(socket.id).name, 'reply', 'queued'),
+    );
 
     emitRoomState(meta.roomId);
   });
@@ -243,8 +244,9 @@ io.on('connection', (socket) => {
     if (!meta) return;
 
     const room = rooms.get(meta.roomId);
-    if (!room || !room.currentTurn) return;
-    if (room.currentTurn.userId !== socket.id) return;
+    const currentEntry = findCurrentEntry(room);
+    if (!room || !currentEntry) return;
+    if (currentEntry.id !== socket.id) return;
 
     applyYield(room);
     emitRoomState(meta.roomId);
@@ -266,8 +268,10 @@ io.on('connection', (socket) => {
       room.ownerId = room.participants.keys().next().value || null;
     }
 
-    if (room.currentTurn?.userId === socket.id) {
+    if (findCurrentEntry(room)?.id === socket.id) {
       applyYield(room);
+    } else if (room.currentBlock) {
+      advanceCurrentBlock(room);
     }
 
     emitRoomState(meta.roomId);
