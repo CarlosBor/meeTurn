@@ -121,13 +121,50 @@ li {
   line-height: 1.45;
 }
 
+.room-qr-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.room-qr-wrap::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgb(18 18 18 / 58%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
 .room-qr {
+  position: relative;
   display: block;
-  width: 120px;
-  height: 120px;
+  width: 180px;
+  height: 180px;
   border: 4px solid var(--ink);
   background: #fff;
   box-shadow: 4px 4px 0 var(--ink);
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: right center;
+}
+
+.room-qr-wrap:hover::before {
+  opacity: 1;
+}
+
+.room-qr-wrap:hover .room-qr {
+  position: fixed;
+  top: 50%;
+  right: 50%;
+  width: min(82vw, 82vh);
+  height: min(82vw, 82vh);
+  max-width: 900px;
+  max-height: 900px;
+  transform: translate(50%, -50%);
+  box-shadow: 12px 12px 0 var(--ink);
+  z-index: 10;
 }
 
 .brutal-card {
@@ -309,6 +346,31 @@ button:disabled {
   background: linear-gradient(180deg, var(--paper), rgb(255 216 138 / 45%));
 }
 
+.mod-panel {
+  display: grid;
+  gap: 1rem;
+  background: linear-gradient(180deg, var(--paper), rgb(255 107 87 / 14%));
+}
+
+.mod-actions,
+.mod-lists {
+  display: grid;
+  gap: 1rem;
+}
+
+.mod-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mod-lists {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mod-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
 .board-card {
   display: grid;
   gap: 0.8rem;
@@ -361,10 +423,50 @@ button:disabled {
   padding: 0.65rem 0.8rem;
 }
 
+.completed-speaker {
+  color: rgb(18 18 18 / 45%);
+  border-color: rgb(18 18 18 / 40%) !important;
+  box-shadow: 4px 4px 0 rgb(18 18 18 / 28%) !important;
+}
+
+.draggable-item {
+  cursor: grab;
+}
+
+.draggable-item.dragging {
+  opacity: 0.55;
+}
+
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgb(157 31 18 / 72%);
+}
+
+.pause-overlay.hidden {
+  display: none;
+}
+
+.pause-overlay-card {
+  padding: 1.5rem 2rem;
+  background: #ffd0c7;
+}
+
+.pause-text {
+  font-family: "Archivo Black", sans-serif;
+  font-size: clamp(4rem, 18vw, 10rem);
+  line-height: 0.9;
+}
+
 @media (max-width: 960px) {
   .status-grid,
   .board-grid,
-  .actions {
+  .actions,
+  .mod-actions,
+  .mod-lists {
     grid-template-columns: 1fr;
   }
 

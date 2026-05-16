@@ -8,8 +8,12 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+const publicDir = path.join(__dirname, 'public');
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(publicDir));
+app.get('/mod', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
 
 const rooms = new Map();
 const socketMeta = new Map();
@@ -21,14 +25,18 @@ function createRoomState() {
     currentBlock: null,
     turnSeq: 0,
     ownerId: null,
+    paused: false,
   };
 }
 
-function ensureRoom(roomId) {
-  if (!rooms.has(roomId)) {
-    rooms.set(roomId, createRoomState());
-  }
-  return rooms.get(roomId);
+function getRoom(roomId) {
+  return rooms.get(roomId) || null;
+}
+
+function createRoom(roomId) {
+  const room = createRoomState();
+  rooms.set(roomId, room);
+  return room;
 }
 
 function makeBlockId(room) {
@@ -43,6 +51,23 @@ function makeSpeakerEntry(id, name, role, status) {
     role,
     status,
   };
+}
+
+function getParticipant(room, userId) {
+  return room.participants.get(userId) || null;
+}
+
+function isModerator(room, userId) {
+  return getParticipant(room, userId)?.role === 'moderator';
+}
+
+function canUseParticipationTools(room, userId) {
+  const role = getParticipant(room, userId)?.role;
+  return role === 'user' || role === 'moderator';
+}
+
+function interactionBlocked(room, userId) {
+  return room.paused && !isModerator(room, userId);
 }
 
 function isQueued(room, userId) {
@@ -144,6 +169,7 @@ function serializeRoom(room) {
 
   return {
     ownerId: room.ownerId,
+    paused: room.paused,
     participants,
     currentSpeaker,
     mainQueue,
@@ -172,26 +198,39 @@ function cleanupRoomIfEmpty(roomId) {
 }
 
 io.on('connection', (socket) => {
-  socket.on('room:join', ({ roomId, name }) => {
+  socket.on('room:join', ({ roomId, name, createRoom: wantsCreateRaw, role: requestedRoleRaw }) => {
     const safeRoomId = String(roomId || '').trim();
     const safeName = String(name || '').trim().slice(0, 40);
+    const wantsCreate = Boolean(wantsCreateRaw);
+    const requestedRole = requestedRoleRaw === 'moderator' ? 'moderator' : 'user';
 
     if (!safeRoomId || !safeName) {
       socket.emit('room:error', { message: 'Room and name are required.' });
       return;
     }
 
-    const room = ensureRoom(safeRoomId);
-    socket.join(safeRoomId);
-
-    if (!room.ownerId) {
+    let room = getRoom(safeRoomId);
+    if (wantsCreate) {
+      if (room) {
+        socket.emit('room:error', { message: 'That room already exists. Create another one.' });
+        return;
+      }
+      room = createRoom(safeRoomId);
       room.ownerId = socket.id;
+    } else if (!room) {
+      socket.emit('room:error', { message: 'That room does not exist yet.' });
+      return;
     }
 
-    room.participants.set(socket.id, { name: safeName });
+    socket.join(safeRoomId);
+    const participantRole = wantsCreate ? 'creator' : requestedRole;
+    room.participants.set(socket.id, { name: safeName, role: participantRole });
     socketMeta.set(socket.id, { roomId: safeRoomId });
 
-    socket.emit('room:joined', { roomId: safeRoomId, me: { id: socket.id, name: safeName } });
+    socket.emit('room:joined', {
+      roomId: safeRoomId,
+      me: { id: socket.id, name: safeName, role: participantRole },
+    });
     emitRoomState(safeRoomId);
   });
 
@@ -201,6 +240,8 @@ io.on('connection', (socket) => {
 
     const room = rooms.get(meta.roomId);
     if (!room || !room.participants.has(socket.id)) return;
+    if (!canUseParticipationTools(room, socket.id)) return;
+    if (interactionBlocked(room, socket.id)) return;
 
     const isCurrent = findCurrentEntry(room)?.id === socket.id;
     if (isCurrent || isQueued(room, socket.id)) return;
@@ -228,6 +269,8 @@ io.on('connection', (socket) => {
     const room = rooms.get(meta.roomId);
     const currentEntry = findCurrentEntry(room);
     if (!room || !room.currentBlock || !currentEntry || !room.participants.has(socket.id)) return;
+    if (!canUseParticipationTools(room, socket.id)) return;
+    if (interactionBlocked(room, socket.id)) return;
 
     if (currentEntry.id === socket.id) return;
     if (isQueued(room, socket.id)) return;
@@ -246,10 +289,61 @@ io.on('connection', (socket) => {
     const room = rooms.get(meta.roomId);
     const currentEntry = findCurrentEntry(room);
     if (!room || !currentEntry) return;
+    if (!canUseParticipationTools(room, socket.id)) return;
+    if (interactionBlocked(room, socket.id)) return;
     if (currentEntry.id !== socket.id) return;
 
     applyYield(room);
     emitRoomState(meta.roomId);
+  });
+
+  socket.on('turn:force-yield', () => {
+    const meta = socketMeta.get(socket.id);
+    if (!meta) return;
+
+    const room = rooms.get(meta.roomId);
+    if (!room || !isModerator(room, socket.id)) return;
+
+    applyYield(room);
+    emitRoomState(meta.roomId);
+  });
+
+  socket.on('room:pause', ({ paused }) => {
+    const meta = socketMeta.get(socket.id);
+    if (!meta) return;
+
+    const room = rooms.get(meta.roomId);
+    if (!room || !isModerator(room, socket.id)) return;
+
+    room.paused = Boolean(paused);
+    emitRoomState(meta.roomId);
+  });
+
+  socket.on('queue:reorder', ({ kind, orderedIds }) => {
+    const meta = socketMeta.get(socket.id);
+    if (!meta) return;
+
+    const room = rooms.get(meta.roomId);
+    if (!room || !isModerator(room, socket.id) || !Array.isArray(orderedIds)) return;
+
+    if (kind === 'main') {
+      const mainMap = new Map(room.mainQueue.map((entry) => [entry.id, entry]));
+      if (mainMap.size !== orderedIds.length) return;
+      if (orderedIds.some((id) => !mainMap.has(id))) return;
+      room.mainQueue = orderedIds.map((id) => mainMap.get(id));
+      emitRoomState(meta.roomId);
+      return;
+    }
+
+    if (kind === 'replies' && room.currentBlock) {
+      const fixedReplies = room.currentBlock.replies.filter((reply) => reply.status !== 'queued');
+      const queuedReplies = room.currentBlock.replies.filter((reply) => reply.status === 'queued');
+      const replyMap = new Map(queuedReplies.map((reply) => [reply.id, reply]));
+      if (replyMap.size !== orderedIds.length) return;
+      if (orderedIds.some((id) => !replyMap.has(id))) return;
+      room.currentBlock.replies = [...fixedReplies, ...orderedIds.map((id) => replyMap.get(id))];
+      emitRoomState(meta.roomId);
+    }
   });
 
   socket.on('disconnect', () => {
@@ -265,7 +359,11 @@ io.on('connection', (socket) => {
     removeFromQueues(room, socket.id);
 
     if (room.ownerId === socket.id) {
-      room.ownerId = room.participants.keys().next().value || null;
+      room.ownerId = null;
+    }
+
+    if (room.paused && !Array.from(room.participants.keys()).some((id) => isModerator(room, id))) {
+      room.paused = false;
     }
 
     if (findCurrentEntry(room)?.id === socket.id) {

@@ -54,18 +54,20 @@
           </div>
           <div class="share-panel">
             <p id="room-link" class="page-note"></p>
-            <img
-              id="room-qr"
-              class="room-qr hidden"
-              alt="QR code for joining this room"
-              width="120"
-              height="120"
-            />
+            <div class="room-qr-wrap hidden" id="room-qr-wrap">
+              <img
+                id="room-qr"
+                class="room-qr"
+                alt="QR code for joining this room"
+                width="180"
+                height="180"
+              />
+            </div>
           </div>
         </header>
 
         <div class="status-grid">
-          <section id="owner-speaker-card" class="brutal-card section-card spotlight-card">
+          <section id="speaker-card" class="brutal-card section-card spotlight-card">
             <div class="section-heading">
               <div>
                 <p class="badge">Now Speaking</p>
@@ -75,7 +77,7 @@
             <p id="current-speaker">Nobody speaking yet.</p>
           </section>
 
-          <section class="brutal-card section-card controls-panel">
+          <section id="controls-card" class="brutal-card section-card controls-panel">
             <div class="section-heading">
               <div>
                 <p class="badge">Actions</p>
@@ -90,6 +92,29 @@
           </section>
         </div>
 
+        <section id="moderator-card" class="hidden brutal-card section-card mod-panel">
+          <div class="section-heading">
+            <div>
+              <p class="badge">Moderator</p>
+              <h3>Manage The Room</h3>
+            </div>
+          </div>
+          <div class="mod-actions">
+            <button id="force-yield-btn" type="button">Force Yield</button>
+            <button id="pause-room-btn" type="button">Pause Room</button>
+          </div>
+          <div class="mod-lists">
+            <section class="mod-list">
+              <p class="badge">Reply Order</p>
+              <ol id="moderator-reply-order" class="stack-list moderator-order"></ol>
+            </section>
+            <section class="mod-list">
+              <p class="badge">Next Speakers</p>
+              <ol id="moderator-main-order" class="stack-list moderator-order"></ol>
+            </section>
+          </div>
+        </section>
+
         <div class="board-grid">
           <section class="brutal-card section-card board-card queue-card">
             <div class="section-heading">
@@ -103,6 +128,13 @@
         </div>
       </section>
     </main>
+
+    <div id="pause-overlay" class="pause-overlay hidden" aria-hidden="true">
+      <div class="pause-overlay-card brutal-card">
+        <p class="badge">Room State</p>
+        <p class="pause-text">PAUSE</p>
+      </div>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="app.js"></script>
