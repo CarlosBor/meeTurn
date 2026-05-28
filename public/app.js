@@ -127,7 +127,7 @@ function isModerator() {
 }
 
 function canParticipate() {
-  return me?.role === 'user' || me?.role === 'moderator' || me?.role === 'creator';
+  return me?.role === 'user' || me?.role === 'moderator';
 }
 
 function makeRoomId() {
@@ -177,7 +177,9 @@ function syncJoinMode() {
   joinCard.classList.toggle('compact-join-card', hasForcedRoom);
   joinKicker.classList.toggle('hidden', hasForcedRoom);
   joinTitle.textContent = hasForcedRoom
-    ? routeInfo.mode === 'admin' || routeInfo.mode === 'lobby-admin'
+    ? routeInfo.mode === 'creator'
+      ? 'Join a room as creator.'
+      : routeInfo.mode === 'admin' || routeInfo.mode === 'lobby-admin'
       ? 'Join a room as admin.'
       : 'You are now joining a room.'
     : routeInfo.mode === 'lobby-admin'
@@ -195,6 +197,8 @@ function syncJoinMode() {
   createModeBtn.setAttribute('aria-pressed', String(isCreateMode));
   joinSubmitBtn.textContent = isAdminPathNow()
       ? 'Join As Admin'
+    : routeInfo.mode === 'creator'
+      ? 'Join As Creator'
     : hasForcedRoom
       ? 'Join Room'
       : isCreateMode
@@ -418,15 +422,17 @@ joinForm.addEventListener('submit', (event) => {
   }
 
   roomId = rid;
+  const role =
+    routeInfo.mode === 'creator' || (routeInfo.mode === 'lobby' && isCreateMode)
+      ? 'creator'
+      : isAdminPathNow()
+        ? 'moderator'
+        : 'user';
   socket.emit('room:join', {
     roomId,
     name,
     createRoom: routeInfo.mode === 'lobby' && isCreateMode,
-    role: isCreateMode
-      ? 'creator'
-      : isAdminPathNow()
-        ? 'moderator'
-        : 'user',
+    role,
     creatorToken: entryCreatorToken,
   });
 });
@@ -477,7 +483,9 @@ socket.on('room:joined', (payload) => {
   }
   const url = new URL(window.location.href);
   url.pathname = me.role === 'moderator'
-      ? `/room/${encodeURIComponent(roomId)}/admin`
+    ? `/room/${encodeURIComponent(roomId)}/admin`
+    : me.role === 'creator'
+      ? `/room/${encodeURIComponent(roomId)}/creator`
       : `/room/${encodeURIComponent(roomId)}`;
   url.searchParams.delete('room');
   url.searchParams.delete('token');

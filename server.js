@@ -216,7 +216,12 @@ io.on('connection', (socket) => {
     const safeRoomId = String(roomId || '').trim();
     const safeName = String(name || '').trim().slice(0, 40);
     const wantsCreate = Boolean(wantsCreateRaw);
-    const requestedRole = requestedRoleRaw === 'moderator' ? 'moderator' : 'user';
+    const requestedRole =
+      requestedRoleRaw === 'creator'
+        ? 'creator'
+        : requestedRoleRaw === 'moderator'
+          ? 'moderator'
+          : 'user';
     const creatorToken = String(creatorTokenRaw || '').trim();
 
     if (!safeRoomId || !safeName) {
@@ -239,7 +244,9 @@ io.on('connection', (socket) => {
     }
 
     let participantRole = requestedRole;
-    if (!wantsCreate && requestedRole === 'creator') {
+    if (wantsCreate) {
+      participantRole = 'creator';
+    } else if (requestedRole === 'creator') {
       if (!room.creatorToken || creatorToken !== room.creatorToken) {
         socket.emit('room:error', { message: 'Creator access requires the private creator link.' });
         return;
