@@ -30,11 +30,17 @@ const currentSpeakerEl = document.getElementById('current-speaker');
 const joinQueueBtn = document.getElementById('join-queue-btn');
 const respondBtn = document.getElementById('respond-btn');
 const yieldBtn = document.getElementById('yield-btn');
+const shareRoomBtn = document.getElementById('share-room-btn');
 const forceYieldBtn = document.getElementById('force-yield-btn');
 const pauseRoomBtn = document.getElementById('pause-room-btn');
 const moderatorReplyOrder = document.getElementById('moderator-reply-order');
 const moderatorMainOrder = document.getElementById('moderator-main-order');
 const mainQueueEl = document.getElementById('main-queue');
+const shareOverlay = document.getElementById('share-overlay');
+const closeShareBtn = document.getElementById('close-share-btn');
+const shareRoomCode = document.getElementById('share-room-code');
+const shareRoomLink = document.getElementById('share-room-link');
+const shareRoomQr = document.getElementById('share-room-qr');
 const pauseOverlay = document.getElementById('pause-overlay');
 
 let me = null;
@@ -42,13 +48,78 @@ let roomId = '';
 let roomState = null;
 let isCreateMode = false;
 let forcedRoomId = '';
+let entryCreatorToken = '';
+let sharePanelOpen = false;
 let draggedModeratorId = null;
 let draggedModeratorKind = null;
 
-const isModeratorPath = window.location.pathname.replace(/\/+$/, '') === '/mod';
+function getRouteInfo() {
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  const creatorMatch = pathname.match(/^\/room\/([^/]+)\/creator$/i);
+  if (creatorMatch) {
+    return { mode: 'creator', roomId: creatorMatch[1].toUpperCase() };
+  }
+
+  const adminMatch = pathname.match(/^\/room\/([^/]+)\/admin$/i);
+  if (adminMatch) {
+    return { mode: 'admin', roomId: adminMatch[1].toUpperCase() };
+  }
+
+  const roomMatch = pathname.match(/^\/room\/([^/]+)$/i);
+  if (roomMatch) {
+    return { mode: 'user', roomId: roomMatch[1].toUpperCase() };
+  }
+
+  if (pathname === '/admin') {
+    return { mode: 'lobby-admin', roomId: '' };
+  }
+
+  return { mode: 'lobby', roomId: '' };
+}
+
+const routeInfo = getRouteInfo();
+
+function getCurrentRouteMode() {
+  return getRouteInfo().mode;
+}
+
+function isAdminPathNow() {
+  const mode = getCurrentRouteMode();
+  return mode === 'admin' || mode === 'lobby-admin';
+}
+
+function isCreatorPathNow() {
+  return getCurrentRouteMode() === 'creator';
+}
+
+function isRoomPathNow() {
+  return Boolean(getRouteInfo().roomId);
+}
+
+function getRoomUrl(roomIdValue, mode, creatorToken = '') {
+  const url = new URL(window.location.origin);
+  url.pathname =
+    mode === 'creator'
+      ? `/room/${encodeURIComponent(roomIdValue)}/creator`
+      : mode === 'admin'
+        ? `/room/${encodeURIComponent(roomIdValue)}/admin`
+        : `/room/${encodeURIComponent(roomIdValue)}`;
+  if (creatorToken) {
+    url.searchParams.set('token', creatorToken);
+  }
+  return url.toString();
+}
+
+function getStoredCreatorToken(roomIdValue) {
+  return window.localStorage.getItem(`meeturn:creator-token:${roomIdValue}`) || '';
+}
+
+function setStoredCreatorToken(roomIdValue, token) {
+  window.localStorage.setItem(`meeturn:creator-token:${roomIdValue}`, token);
+}
 
 function isCreator() {
-  return me?.role === 'creator';
+  return me?.role === 'creator' && isCreatorPathNow();
 }
 
 function isModerator() {
@@ -56,7 +127,7 @@ function isModerator() {
 }
 
 function canParticipate() {
-  return me?.role === 'user' || me?.role === 'moderator';
+  return me?.role === 'user' || me?.role === 'moderator' || me?.role === 'creator';
 }
 
 function makeRoomId() {
@@ -79,29 +150,51 @@ function renderList(container, items) {
   }
 }
 
+function renderSharePanel() {
+  if (!roomId) return;
+  const shareUrl = getRoomUrl(roomId, 'user');
+  shareRoomCode.textContent = `Room code: ${roomId}`;
+  shareRoomLink.innerHTML = `Share link: <a href="${shareUrl}">${shareUrl}</a>`;
+  shareRoomQr.src = window.createQrDataUrl(shareUrl, { size: 320, margin: 4 });
+}
+
+function setSharePanelOpen(open) {
+  sharePanelOpen = open;
+  document.body.classList.toggle('share-panel-open', open);
+  shareOverlay.classList.toggle('hidden', !open);
+  shareOverlay.setAttribute('aria-hidden', String(!open));
+  shareRoomBtn.setAttribute('aria-label', open ? 'Hide room info' : 'Show room info');
+  shareRoomBtn.title = open ? 'Hide room info' : 'Show room info';
+  if (open) {
+    renderSharePanel();
+  }
+}
+
 function syncJoinMode() {
   const hasForcedRoom = Boolean(forcedRoomId);
-  const lockedJoinMode = hasForcedRoom || isModeratorPath;
+  const lockedJoinMode = hasForcedRoom || routeInfo.mode !== 'lobby';
 
   joinCard.classList.toggle('compact-join-card', hasForcedRoom);
   joinKicker.classList.toggle('hidden', hasForcedRoom);
   joinTitle.textContent = hasForcedRoom
-    ? 'You are now joining a room.'
-    : isModeratorPath
-      ? 'Join a room as moderator.'
+    ? routeInfo.mode === 'admin' || routeInfo.mode === 'lobby-admin'
+      ? 'Join a room as admin.'
+      : 'You are now joining a room.'
+    : routeInfo.mode === 'lobby-admin'
+      ? 'Join a room as admin.'
       : 'Keep speaking turns structured without killing the flow.';
   joinTitle.classList.remove('hidden');
-  joinLede.classList.toggle('hidden', hasForcedRoom || isModeratorPath);
+  joinLede.classList.toggle('hidden', hasForcedRoom || routeInfo.mode !== 'lobby');
   otherRoomLink.classList.toggle('hidden', !hasForcedRoom);
   modeToggle.classList.toggle('hidden', lockedJoinMode);
-  roomField.classList.toggle('hidden', isCreateMode || hasForcedRoom);
+  roomField.classList.toggle('hidden', isCreateMode || hasForcedRoom || isRoomPathNow());
   roomInput.required = !isCreateMode && !hasForcedRoom;
   joinModeBtn.classList.toggle('active', !isCreateMode);
   createModeBtn.classList.toggle('active', isCreateMode);
   joinModeBtn.setAttribute('aria-pressed', String(!isCreateMode));
   createModeBtn.setAttribute('aria-pressed', String(isCreateMode));
-  joinSubmitBtn.textContent = isModeratorPath
-    ? 'Join As Moderator'
+  joinSubmitBtn.textContent = isAdminPathNow()
+      ? 'Join As Admin'
     : hasForcedRoom
       ? 'Join Room'
       : isCreateMode
@@ -275,11 +368,15 @@ function renderState() {
   ownerShareCard.classList.toggle('hidden', !creatorView);
   speakerCard.classList.remove('hidden');
   controlsCard.classList.toggle('hidden', !canParticipate());
+  shareRoomBtn.classList.toggle('hidden', !roomState || !me);
   moderatorCard.classList.toggle('hidden', !moderatorView);
   pauseOverlay.classList.toggle('hidden', !roomState.paused || moderatorView);
   queueBadge.textContent = creatorView ? 'Order' : moderatorView ? 'Queue' : 'Live';
-  queueTitle.textContent = creatorView ? 'Speaking Queue' : 'Talking Queue';
+  queueTitle.textContent = creatorView ? 'Speaking Order' : moderatorView ? 'Speaking Queue' : 'Talking Queue';
   pauseRoomBtn.textContent = roomState.paused ? 'Unpause Room' : 'Pause Room';
+  if (sharePanelOpen) {
+    renderSharePanel();
+  }
   renderTalkingQueue();
   if (moderatorView) {
     renderModeratorQueues();
@@ -293,10 +390,8 @@ function enterRoomUI() {
   roomCard.classList.remove('hidden');
   ownerShareCard.classList.add('hidden');
   roomTitle.textContent = `Room ${roomId}`;
-  const url = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(roomId)}`;
-  roomLink.innerHTML = `Share link: <a href="${url}">${url}</a>`;
-  roomQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}`;
-  roomQrWrap.classList.remove('hidden');
+  roomQrWrap.classList.add('hidden');
+  setSharePanelOpen(false);
 }
 
 joinForm.addEventListener('submit', (event) => {
@@ -326,8 +421,13 @@ joinForm.addEventListener('submit', (event) => {
   socket.emit('room:join', {
     roomId,
     name,
-    createRoom: !isModeratorPath && isCreateMode,
-    role: isModeratorPath ? 'moderator' : 'user',
+    createRoom: routeInfo.mode === 'lobby' && isCreateMode,
+    role: isCreateMode
+      ? 'creator'
+      : isAdminPathNow()
+        ? 'moderator'
+        : 'user',
+    creatorToken: entryCreatorToken,
   });
 });
 
@@ -371,10 +471,19 @@ socket.on('room:error', ({ message }) => {
 socket.on('room:joined', (payload) => {
   me = payload.me;
   roomId = payload.roomId;
+  if (payload.creatorToken) {
+    entryCreatorToken = payload.creatorToken;
+    setStoredCreatorToken(roomId, payload.creatorToken);
+  }
   const url = new URL(window.location.href);
-  url.searchParams.set('room', roomId);
+  url.pathname = me.role === 'moderator'
+      ? `/room/${encodeURIComponent(roomId)}/admin`
+      : `/room/${encodeURIComponent(roomId)}`;
+  url.searchParams.delete('room');
+  url.searchParams.delete('token');
   window.history.replaceState({}, '', url);
   enterRoomUI();
+  renderState();
   updateButtons();
 });
 
@@ -385,12 +494,39 @@ socket.on('room:state', (state) => {
 
 (function init() {
   const url = new URL(window.location.href);
-  const rid = url.searchParams.get('room');
-  otherRoomLink.querySelector('a').href = `${window.location.origin}${isModeratorPath ? '/mod' : '/'}`;
+  const rid = routeInfo.roomId || url.searchParams.get('room');
+  entryCreatorToken = url.searchParams.get('token') || '';
   if (rid) {
     forcedRoomId = rid.toUpperCase();
     roomInput.value = forcedRoomId;
     isCreateMode = false;
+    if (routeInfo.mode === 'creator' && !entryCreatorToken) {
+      entryCreatorToken = getStoredCreatorToken(forcedRoomId);
+    }
   }
+  otherRoomLink.querySelector('a').href = routeInfo.mode === 'lobby-admin'
+    ? `${window.location.origin}/admin`
+    : `${window.location.origin}/`;
   syncJoinMode();
 })();
+
+shareRoomBtn.addEventListener('click', () => {
+  if (!roomId) return;
+  setSharePanelOpen(true);
+});
+
+closeShareBtn.addEventListener('click', () => {
+  setSharePanelOpen(false);
+});
+
+shareOverlay.addEventListener('click', (event) => {
+  if (event.target === shareOverlay) {
+    setSharePanelOpen(false);
+  }
+});
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && sharePanelOpen) {
+    setSharePanelOpen(false);
+  }
+});

@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -11,8 +12,20 @@ const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, 'public');
 
 app.use(express.static(publicDir));
-app.get('/mod', (_req, res) => {
+app.get('/room/:roomId/creator', (_req, res) => {
   res.sendFile(path.join(publicDir, 'index.html'));
+});
+app.get('/room/:roomId/admin', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+app.get('/room/:roomId', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+app.get('/mod', (_req, res) => {
+  res.redirect('/admin');
 });
 
 const rooms = new Map();
@@ -25,6 +38,7 @@ function createRoomState() {
     currentBlock: null,
     turnSeq: 0,
     ownerId: null,
+    creatorToken: null,
     paused: false,
   };
 }
@@ -198,11 +212,12 @@ function cleanupRoomIfEmpty(roomId) {
 }
 
 io.on('connection', (socket) => {
-  socket.on('room:join', ({ roomId, name, createRoom: wantsCreateRaw, role: requestedRoleRaw }) => {
+  socket.on('room:join', ({ roomId, name, createRoom: wantsCreateRaw, role: requestedRoleRaw, creatorToken: creatorTokenRaw }) => {
     const safeRoomId = String(roomId || '').trim();
     const safeName = String(name || '').trim().slice(0, 40);
     const wantsCreate = Boolean(wantsCreateRaw);
     const requestedRole = requestedRoleRaw === 'moderator' ? 'moderator' : 'user';
+    const creatorToken = String(creatorTokenRaw || '').trim();
 
     if (!safeRoomId || !safeName) {
       socket.emit('room:error', { message: 'Room and name are required.' });
@@ -217,19 +232,29 @@ io.on('connection', (socket) => {
       }
       room = createRoom(safeRoomId);
       room.ownerId = socket.id;
+      room.creatorToken = crypto.randomBytes(16).toString('hex');
     } else if (!room) {
       socket.emit('room:error', { message: 'That room does not exist yet.' });
       return;
     }
 
+    let participantRole = requestedRole;
+    if (!wantsCreate && requestedRole === 'creator') {
+      if (!room.creatorToken || creatorToken !== room.creatorToken) {
+        socket.emit('room:error', { message: 'Creator access requires the private creator link.' });
+        return;
+      }
+      participantRole = 'creator';
+    }
+
     socket.join(safeRoomId);
-    const participantRole = wantsCreate ? 'creator' : requestedRole;
     room.participants.set(socket.id, { name: safeName, role: participantRole });
     socketMeta.set(socket.id, { roomId: safeRoomId });
 
     socket.emit('room:joined', {
       roomId: safeRoomId,
       me: { id: socket.id, name: safeName, role: participantRole },
+      creatorToken: participantRole === 'creator' ? room.creatorToken : null,
     });
     emitRoomState(safeRoomId);
   });

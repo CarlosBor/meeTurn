@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -81,7 +81,7 @@
             <div class="section-heading">
               <div>
                 <p class="badge">Actions</p>
-                <h3>Control The Queue</h3>
+                <h3 id="controls-title">Contribute to the discussion</h3>
               </div>
             </div>
             <div class="controls">
@@ -129,6 +129,37 @@
       </section>
     </main>
 
+    <button id="share-room-btn" type="button" class="room-fab hidden" aria-label="Show room info">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="room-fab-icon">
+        <path
+          d="M18 16.08c-.66 0-1.26.25-1.73.66l-6.16-3.58c.05-.22.09-.45.09-.69s-.03-.47-.09-.69l6.09-3.54c.49.44 1.12.71 1.82.71a3 3 0 1 0-2.83-4h-.01a3 3 0 0 0-.16 1l-6.09 3.54a3 3 0 1 0 0 4.26l6.16 3.58a3 3 0 1 0 2.91-1.55Zm0-10.58a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-12 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm12 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
+        />
+      </svg>
+    </button>
+
+    <div id="share-overlay" class="share-overlay hidden" aria-hidden="true">
+      <section class="share-overlay-card brutal-card">
+        <div class="section-heading">
+          <div>
+            <p class="badge">Room Access</p>
+            <h3>Share This Room</h3>
+          </div>
+          <button id="close-share-btn" type="button">Close</button>
+        </div>
+        <p id="share-room-code" class="page-note"></p>
+        <p id="share-room-link" class="page-note"></p>
+        <div class="share-qr-wrap">
+          <img
+            id="share-room-qr"
+            class="share-room-qr"
+            alt="QR code for joining this room"
+            width="320"
+            height="320"
+          />
+        </div>
+      </section>
+    </div>
+
     <div id="pause-overlay" class="pause-overlay hidden" aria-hidden="true">
       <div class="pause-overlay-card brutal-card">
         <p class="badge">Room State</p>
@@ -137,6 +168,7 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
+    <script src="/qr.js"></script>
+    <script src="/app.js"></script>
   </body>
 </html>
