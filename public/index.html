@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Meeting Queue</title>
+    <title>Cola de reuniones</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,32 +16,32 @@
     <main class="app-shell">
       <section id="join-card" class="login-panel brutal-card">
         <p id="join-kicker" class="kicker">Meeturn</p>
-        <h1 id="join-title">Keep speaking turns structured without killing the flow.</h1>
+        <h1 id="join-title">Mantén ordenados los turnos de palabra sin cortar el ritmo.</h1>
         <p id="join-lede" class="lede">
-          Join a room, queue the next speaker, and let responses branch off the
-          current turn without losing track of the room.
+          Entra en una sala, ordena a la siguiente persona que hablará y deja que
+          las respuestas se ramifiquen sin perder el control de la sala.
         </p>
         <form id="join-form" class="login-form">
-          <div id="mode-toggle" class="mode-toggle" role="tablist" aria-label="Room mode">
+          <div id="mode-toggle" class="mode-toggle" role="tablist" aria-label="Modo de la sala">
             <button type="button" id="join-mode-btn" class="mode-option active" aria-pressed="true">
-              Join room
+              Entrar en una sala
             </button>
             <button type="button" id="create-mode-btn" class="mode-option" aria-pressed="false">
-              Create room
+              Crear sala
             </button>
           </div>
           <label id="room-field">
-            Room ID
+            ID de la sala
             <input id="room-input" required maxlength="40" />
           </label>
           <label>
-            Your name
+            Tu nombre
             <input id="name-input" required maxlength="40" />
           </label>
-          <button type="submit" id="join-submit-btn">Join Room</button>
+          <button type="submit" id="join-submit-btn">Entrar en la sala</button>
         </form>
         <p id="other-room-link" class="join-alt hidden">
-          Wanna join another room? <a href="/">click here</a>
+          ¿Quieres entrar en otra sala? <a href="/">haz clic aquí</a>
         </p>
         <p id="join-error" class="feedback error"></p>
       </section>
@@ -49,7 +49,7 @@
       <section id="room-card" class="hidden room-shell">
         <header id="owner-share-card" class="hero brutal-card section-card">
           <div class="hero-copy">
-            <p class="kicker">Live Facilitation</p>
+            <p class="kicker">Moderación en vivo</p>
             <h2 id="room-title"></h2>
           </div>
           <div class="share-panel">
@@ -58,7 +58,7 @@
               <img
                 id="room-qr"
                 class="room-qr"
-                alt="QR code for joining this room"
+                alt="Código QR para entrar en esta sala"
                 width="180"
                 height="180"
               />
@@ -70,24 +70,24 @@
           <section id="speaker-card" class="brutal-card section-card spotlight-card">
             <div class="section-heading">
               <div>
-                <p class="badge">Now Speaking</p>
-                <h3>Current Speaker</h3>
+                <p class="badge">Hablando ahora</p>
+                <h3>Persona que habla</h3>
               </div>
             </div>
-            <p id="current-speaker">Nobody speaking yet.</p>
+            <p id="current-speaker">Todavía no habla nadie.</p>
           </section>
 
           <section id="controls-card" class="brutal-card section-card controls-panel">
             <div class="section-heading">
               <div>
-                <p class="badge">Actions</p>
-                <h3 id="controls-title">Contribute to the discussion</h3>
+                <p class="badge">Acciones</p>
+                <h3 id="controls-title">Participa en la conversación</h3>
               </div>
             </div>
             <div class="controls">
-              <button id="join-queue-btn">Join Talking Queue</button>
-              <button id="respond-btn">Respond to Current Speaker</button>
-              <button id="yield-btn">Yield Turn</button>
+              <button id="join-queue-btn">Entrar en la cola</button>
+              <button id="respond-btn">Responder a quien habla</button>
+              <button id="yield-btn">Ceder el turno</button>
             </div>
           </section>
         </div>
@@ -95,21 +95,21 @@
         <section id="moderator-card" class="hidden brutal-card section-card mod-panel">
           <div class="section-heading">
             <div>
-              <p class="badge">Moderator</p>
-              <h3>Manage The Room</h3>
+              <p class="badge">Moderación</p>
+              <h3>Gestionar la sala</h3>
             </div>
           </div>
           <div class="mod-actions">
-            <button id="force-yield-btn" type="button">Force Yield</button>
-            <button id="pause-room-btn" type="button">Pause Room</button>
+            <button id="force-yield-btn" type="button">Forzar cesión</button>
+            <button id="pause-room-btn" type="button">Pausar sala</button>
           </div>
           <div class="mod-lists">
             <section class="mod-list">
-              <p class="badge">Reply Order</p>
+              <p class="badge">Orden de respuestas</p>
               <ol id="moderator-reply-order" class="stack-list moderator-order"></ol>
             </section>
             <section class="mod-list">
-              <p class="badge">Next Speakers</p>
+              <p class="badge">Siguientes personas</p>
               <ol id="moderator-main-order" class="stack-list moderator-order"></ol>
             </section>
           </div>
@@ -119,8 +119,8 @@
           <section class="brutal-card section-card board-card queue-card">
             <div class="section-heading">
               <div>
-                <p id="queue-badge" class="badge">Order</p>
-                <h3 id="queue-title">Talking Queue</h3>
+                <p id="queue-badge" class="badge">Orden</p>
+                <h3 id="queue-title">Cola de palabra</h3>
               </div>
             </div>
             <ol id="main-queue" class="stack-list"></ol>
@@ -129,7 +129,7 @@
       </section>
     </main>
 
-    <button id="share-room-btn" type="button" class="room-fab hidden" aria-label="Show room info">
+    <button id="share-room-btn" type="button" class="room-fab hidden" aria-label="Mostrar información de la sala">
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="room-fab-icon">
         <path
           d="M18 16.08c-.66 0-1.26.25-1.73.66l-6.16-3.58c.05-.22.09-.45.09-.69s-.03-.47-.09-.69l6.09-3.54c.49.44 1.12.71 1.82.71a3 3 0 1 0-2.83-4h-.01a3 3 0 0 0-.16 1l-6.09 3.54a3 3 0 1 0 0 4.26l6.16 3.58a3 3 0 1 0 2.91-1.55Zm0-10.58a1 1 0 1 1 0 2 1 1 0 0 1 0-2Zm-12 7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm12 5a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
@@ -141,10 +141,10 @@
       <section class="share-overlay-card brutal-card">
         <div class="section-heading">
           <div>
-            <p class="badge">Room Access</p>
-            <h3>Share This Room</h3>
+            <p class="badge">Acceso a la sala</p>
+            <h3>Compartir esta sala</h3>
           </div>
-          <button id="close-share-btn" type="button">Close</button>
+          <button id="close-share-btn" type="button">Cerrar</button>
         </div>
         <p id="share-room-code" class="page-note"></p>
         <p id="share-room-link" class="page-note"></p>
@@ -152,7 +152,7 @@
           <img
             id="share-room-qr"
             class="share-room-qr"
-            alt="QR code for joining this room"
+            alt="Código QR para entrar en esta sala"
             width="320"
             height="320"
           />
@@ -162,8 +162,8 @@
 
     <div id="pause-overlay" class="pause-overlay hidden" aria-hidden="true">
       <div class="pause-overlay-card brutal-card">
-        <p class="badge">Room State</p>
-        <p class="pause-text">PAUSE</p>
+        <p class="badge">Estado de la sala</p>
+        <p class="pause-text">PAUSADA</p>
       </div>
     </div>
 

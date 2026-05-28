@@ -138,7 +138,7 @@ function renderList(container, items) {
   container.innerHTML = '';
   if (!items.length) {
     const li = document.createElement('li');
-    li.textContent = 'None';
+    li.textContent = 'Ninguna';
     container.appendChild(li);
     return;
   }
@@ -153,8 +153,8 @@ function renderList(container, items) {
 function renderSharePanel() {
   if (!roomId) return;
   const shareUrl = getRoomUrl(roomId, 'user');
-  shareRoomCode.textContent = `Room code: ${roomId}`;
-  shareRoomLink.innerHTML = `Share link: <a href="${shareUrl}">${shareUrl}</a>`;
+  shareRoomCode.textContent = `Código de la sala: ${roomId}`;
+  shareRoomLink.innerHTML = `Enlace para compartir: <a href="${shareUrl}">${shareUrl}</a>`;
   shareRoomQr.src = window.createQrDataUrl(shareUrl, { size: 320, margin: 4 });
 }
 
@@ -163,8 +163,8 @@ function setSharePanelOpen(open) {
   document.body.classList.toggle('share-panel-open', open);
   shareOverlay.classList.toggle('hidden', !open);
   shareOverlay.setAttribute('aria-hidden', String(!open));
-  shareRoomBtn.setAttribute('aria-label', open ? 'Hide room info' : 'Show room info');
-  shareRoomBtn.title = open ? 'Hide room info' : 'Show room info';
+  shareRoomBtn.setAttribute('aria-label', open ? 'Ocultar información de la sala' : 'Mostrar información de la sala');
+  shareRoomBtn.title = open ? 'Ocultar información de la sala' : 'Mostrar información de la sala';
   if (open) {
     renderSharePanel();
   }
@@ -178,13 +178,13 @@ function syncJoinMode() {
   joinKicker.classList.toggle('hidden', hasForcedRoom);
   joinTitle.textContent = hasForcedRoom
     ? routeInfo.mode === 'creator'
-      ? 'Join a room as creator.'
+      ? 'Entra en una sala como creador.'
       : routeInfo.mode === 'admin' || routeInfo.mode === 'lobby-admin'
-      ? 'Join a room as admin.'
-      : 'You are now joining a room.'
+      ? 'Entra en una sala como administrador.'
+      : 'Ahora estás entrando en una sala.'
     : routeInfo.mode === 'lobby-admin'
-      ? 'Join a room as admin.'
-      : 'Keep speaking turns structured without killing the flow.';
+      ? 'Entra en una sala como administrador.'
+      : 'Mantén ordenados los turnos de palabra sin cortar el ritmo.';
   joinTitle.classList.remove('hidden');
   joinLede.classList.toggle('hidden', hasForcedRoom || routeInfo.mode !== 'lobby');
   otherRoomLink.classList.toggle('hidden', !hasForcedRoom);
@@ -196,14 +196,14 @@ function syncJoinMode() {
   joinModeBtn.setAttribute('aria-pressed', String(!isCreateMode));
   createModeBtn.setAttribute('aria-pressed', String(isCreateMode));
   joinSubmitBtn.textContent = isAdminPathNow()
-      ? 'Join As Admin'
+      ? 'Entrar como administrador'
     : routeInfo.mode === 'creator'
-      ? 'Join As Creator'
+      ? 'Entrar como creador'
     : hasForcedRoom
-      ? 'Join Room'
+      ? 'Entrar en la sala'
       : isCreateMode
-        ? 'Create Room'
-        : 'Join Room';
+        ? 'Crear sala'
+        : 'Entrar en la sala';
 }
 
 function renderTalkingQueue() {
@@ -214,7 +214,7 @@ function renderTalkingQueue() {
   const hasQueued = roomState.mainQueue.length > 0;
   if (!hasCurrent && !hasQueued) {
     const li = document.createElement('li');
-    li.textContent = 'None';
+    li.textContent = 'Nadie';
     mainQueueEl.appendChild(li);
     return;
   }
@@ -222,8 +222,8 @@ function renderTalkingQueue() {
   if (hasCurrent) {
     const currentLi = document.createElement('li');
     const currentName =
-      block.mainSpeaker.id === me.id ? `${block.mainSpeaker.name} (you)` : block.mainSpeaker.name;
-    currentLi.textContent = `${currentName} (current speaker)`;
+      block.mainSpeaker.id === me.id ? `${block.mainSpeaker.name} (tú)` : block.mainSpeaker.name;
+    currentLi.textContent = `${currentName} (persona que habla)`;
     if (block.mainSpeaker.status === 'completed') {
       currentLi.classList.add('completed-speaker');
     }
@@ -233,14 +233,14 @@ function renderTalkingQueue() {
       const nested = document.createElement('ol');
       for (const responder of block.replies) {
         const nestedLi = document.createElement('li');
-        const responderName = responder.id === me.id ? `${responder.name} (you)` : responder.name;
+        const responderName = responder.id === me.id ? `${responder.name} (tú)` : responder.name;
         if (responder.status === 'current') {
-          nestedLi.textContent = `${responderName} (current response)`;
+          nestedLi.textContent = `${responderName} (respuesta actual)`;
         } else if (responder.status === 'completed') {
-          nestedLi.textContent = `${responderName} (response completed)`;
+          nestedLi.textContent = `${responderName} (respuesta completada)`;
           nestedLi.classList.add('completed-speaker');
         } else {
-          nestedLi.textContent = `${responderName} (response)`;
+          nestedLi.textContent = `${responderName} (respuesta)`;
         }
         nested.appendChild(nestedLi);
       }
@@ -250,14 +250,14 @@ function renderTalkingQueue() {
 
   for (const queued of roomState.mainQueue) {
     const li = document.createElement('li');
-    li.textContent = queued.id === me.id ? `${queued.name} (you)` : queued.name;
+    li.textContent = queued.id === me.id ? `${queued.name} (tú)` : queued.name;
     mainQueueEl.appendChild(li);
   }
 }
 
 function makeModeratorItem(entry, kind) {
   const li = document.createElement('li');
-  li.textContent = entry.id === me.id ? `${entry.name} (you)` : entry.name;
+  li.textContent = entry.id === me.id ? `${entry.name} (tú)` : entry.name;
   li.dataset.id = entry.id;
   li.dataset.kind = kind;
   li.draggable = true;
@@ -299,7 +299,7 @@ function renderModeratorQueues() {
 
   if (!hasReplies) {
     const li = document.createElement('li');
-    li.textContent = 'No pending replies';
+    li.textContent = 'No hay respuestas pendientes';
     moderatorReplyOrder.appendChild(li);
   } else {
     for (const reply of queuedReplies) {
@@ -309,7 +309,7 @@ function renderModeratorQueues() {
 
   if (!hasMain) {
     const li = document.createElement('li');
-    li.textContent = 'No queued speakers';
+    li.textContent = 'No hay personas en cola';
     moderatorMainOrder.appendChild(li);
   } else {
     for (const speaker of roomState.mainQueue) {
@@ -359,11 +359,11 @@ function renderState() {
   const moderatorView = isModerator();
 
   if (!roomState.currentSpeaker) {
-    currentSpeakerEl.textContent = 'Nobody speaking yet.';
+    currentSpeakerEl.textContent = 'Todavía no habla nadie.';
   } else {
     const who = roomState.currentSpeaker.name;
     if (roomState.currentSpeaker.role === 'reply') {
-      currentSpeakerEl.textContent = `${who} (replying to current speaker)`;
+      currentSpeakerEl.textContent = `${who} (respondiendo a la persona actual)`;
     } else {
       currentSpeakerEl.textContent = who;
     }
@@ -375,9 +375,9 @@ function renderState() {
   shareRoomBtn.classList.toggle('hidden', !roomState || !me);
   moderatorCard.classList.toggle('hidden', !moderatorView);
   pauseOverlay.classList.toggle('hidden', !roomState.paused || moderatorView);
-  queueBadge.textContent = creatorView ? 'Order' : moderatorView ? 'Queue' : 'Live';
-  queueTitle.textContent = creatorView ? 'Speaking Order' : moderatorView ? 'Speaking Queue' : 'Talking Queue';
-  pauseRoomBtn.textContent = roomState.paused ? 'Unpause Room' : 'Pause Room';
+  queueBadge.textContent = creatorView ? 'Orden' : moderatorView ? 'Cola' : 'En vivo';
+  queueTitle.textContent = creatorView ? 'Orden de palabra' : moderatorView ? 'Cola de palabra' : 'Cola de conversación';
+  pauseRoomBtn.textContent = roomState.paused ? 'Reanudar sala' : 'Pausar sala';
   if (sharePanelOpen) {
     renderSharePanel();
   }
@@ -393,7 +393,7 @@ function enterRoomUI() {
   joinCard.classList.add('hidden');
   roomCard.classList.remove('hidden');
   ownerShareCard.classList.add('hidden');
-  roomTitle.textContent = `Room ${roomId}`;
+  roomTitle.textContent = `Sala ${roomId}`;
   roomQrWrap.classList.add('hidden');
   setSharePanelOpen(false);
 }
@@ -405,14 +405,14 @@ joinForm.addEventListener('submit', (event) => {
 
   if (!name) {
     joinError.textContent = isCreateMode
-      ? 'Enter your name before creating a room.'
-      : 'Please enter both room and name.';
+      ? 'Escribe tu nombre antes de crear una sala.'
+      : 'Escribe la sala y tu nombre.';
     return;
   }
 
   const rid = forcedRoomId || (isCreateMode ? makeRoomId() : roomInput.value.trim().toUpperCase());
   if (!rid) {
-    joinError.textContent = 'Please enter both room and name.';
+    joinError.textContent = 'Escribe la sala y tu nombre.';
     roomInput.focus();
     return;
   }
@@ -470,11 +470,11 @@ pauseRoomBtn.addEventListener('click', () => {
   socket.emit('room:pause', { paused: !roomState.paused });
 });
 
-socket.on('room:error', ({ message }) => {
-  joinError.textContent = message || 'Unable to join room.';
+  socket.on('room:error', ({ message }) => {
+  joinError.textContent = message || 'No se puede entrar en la sala.';
 });
 
-socket.on('room:joined', (payload) => {
+  socket.on('room:joined', (payload) => {
   me = payload.me;
   roomId = payload.roomId;
   if (payload.creatorToken) {

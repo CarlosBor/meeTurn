@@ -225,21 +225,21 @@ io.on('connection', (socket) => {
     const creatorToken = String(creatorTokenRaw || '').trim();
 
     if (!safeRoomId || !safeName) {
-      socket.emit('room:error', { message: 'Room and name are required.' });
+      socket.emit('room:error', { message: 'Se necesitan la sala y el nombre.' });
       return;
     }
 
     let room = getRoom(safeRoomId);
     if (wantsCreate) {
       if (room) {
-        socket.emit('room:error', { message: 'That room already exists. Create another one.' });
+        socket.emit('room:error', { message: 'Esa sala ya existe. Crea otra.' });
         return;
       }
       room = createRoom(safeRoomId);
       room.ownerId = socket.id;
       room.creatorToken = crypto.randomBytes(16).toString('hex');
     } else if (!room) {
-      socket.emit('room:error', { message: 'That room does not exist yet.' });
+      socket.emit('room:error', { message: 'Esa sala todavía no existe.' });
       return;
     }
 
@@ -248,7 +248,7 @@ io.on('connection', (socket) => {
       participantRole = 'creator';
     } else if (requestedRole === 'creator') {
       if (!room.creatorToken || creatorToken !== room.creatorToken) {
-        socket.emit('room:error', { message: 'Creator access requires the private creator link.' });
+        socket.emit('room:error', { message: 'El acceso de creador requiere el enlace privado de creador.' });
         return;
       }
       participantRole = 'creator';
