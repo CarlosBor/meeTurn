@@ -484,6 +484,64 @@ button:disabled {
   padding-right: 0.4rem;
 }
 
+.moderator-order {
+  padding-left: 0;
+  list-style: none;
+}
+
+.speaker-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.9rem;
+  background: rgb(255 255 255 / 82%);
+  border: 3px solid var(--ink);
+  padding: 0.85rem 0.9rem;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.speaker-card-content {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.speaker-name {
+  font-family: "Archivo Black", sans-serif;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.drag-handle {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 3px solid var(--ink);
+  background: var(--butter);
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: grab;
+  font-size: 1.25rem;
+  line-height: 1;
+  user-select: none;
+  touch-action: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.speaker-card.dragging {
+  opacity: 0.55;
+  transform: scale(0.995);
+}
+
+.speaker-card.drop-target {
+  outline: 3px dashed var(--tomato);
+  outline-offset: 2px;
+}
+
 #main-queue > li,
 #participants > li {
   background: rgb(255 255 255 / 72%);

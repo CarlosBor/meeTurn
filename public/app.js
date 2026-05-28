@@ -257,26 +257,47 @@ function renderTalkingQueue() {
 
 function makeModeratorItem(entry, kind) {
   const li = document.createElement('li');
-  li.textContent = entry.id === me.id ? `${entry.name} (tú)` : entry.name;
   li.dataset.id = entry.id;
   li.dataset.kind = kind;
-  li.draggable = true;
-  li.classList.add('draggable-item');
-  li.addEventListener('dragstart', () => {
+  li.classList.add('draggable-item', 'speaker-card');
+
+  const handle = document.createElement('button');
+  handle.type = 'button';
+  handle.className = 'drag-handle';
+  handle.setAttribute('aria-label', 'Arrastrar para reordenar');
+  handle.title = 'Arrastrar para reordenar';
+  handle.textContent = '⠿';
+  handle.draggable = true;
+  handle.addEventListener('dragstart', () => {
     draggedModeratorId = entry.id;
     draggedModeratorKind = kind;
     li.classList.add('dragging');
   });
-  li.addEventListener('dragend', () => {
+  handle.addEventListener('dragend', () => {
     draggedModeratorId = null;
     draggedModeratorKind = null;
     li.classList.remove('dragging');
   });
+
+  const content = document.createElement('div');
+  content.className = 'speaker-card-content';
+  const name = document.createElement('span');
+  name.className = 'speaker-name';
+  name.textContent = entry.id === me.id ? `${entry.name} (tú)` : entry.name;
+  content.appendChild(name);
+
+  li.appendChild(handle);
+  li.appendChild(content);
   li.addEventListener('dragover', (event) => {
     event.preventDefault();
+    li.classList.add('drop-target');
+  });
+  li.addEventListener('dragleave', () => {
+    li.classList.remove('drop-target');
   });
   li.addEventListener('drop', (event) => {
     event.preventDefault();
+    li.classList.remove('drop-target');
     if (!draggedModeratorId || draggedModeratorKind !== kind || draggedModeratorId === entry.id) return;
     const container = kind === 'replies' ? moderatorReplyOrder : moderatorMainOrder;
     const ids = Array.from(container.children).map((child) => child.dataset.id);
